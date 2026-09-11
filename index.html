@@ -14,7 +14,6 @@
     --gold-deep:#A87E2A;
     --done:#AEA695;
     --done-bg:#E2DED2;
-    --danger:#B4544A;
     --white:#FCFBF7;
     --radius:14px;
     --serif: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
@@ -81,7 +80,6 @@
 
   main{flex:1; padding:16px 20px 100px;}
 
-  /* Setup screen */
   .setup{
     background:var(--white);
     border-radius:var(--radius);
@@ -122,18 +120,7 @@
     font-size:15px;
     margin-top:16px;
   }
-  .btn-primary:disabled{opacity:.4;}
-  .btn-secondary{
-    width:100%;
-    padding:12px;
-    border-radius:10px;
-    background:transparent;
-    color:var(--ink);
-    font-size:14px;
-    border:1px solid var(--paper-2);
-  }
 
-  /* Action card */
   .action-card{
     background:var(--white);
     border-radius:var(--radius);
@@ -191,7 +178,6 @@
     line-height:1.5;
   }
 
-  /* Preview toast */
   .saved-flash{
     background:#EFE9D8;
     border:1px solid var(--gold);
@@ -203,7 +189,6 @@
   }
   .saved-flash.show{display:block;}
 
-  /* Search */
   .search-wrap{margin-top:20px;}
   .search-wrap input{
     width:100%;
@@ -215,12 +200,10 @@
     color:var(--ink);
   }
 
-  /* Roster list */
   .roster-title{
     font-size:12px;
     color:var(--ink-soft);
     margin:18px 2px 8px;
-    text-transform:none;
   }
   .roster{
     background:var(--white);
@@ -284,14 +267,6 @@
     font-size:12.5px;
     text-decoration:underline;
   }
-
-  .fab-edit{
-    position:fixed;
-    bottom:0; left:0; right:0;
-    max-width:480px;
-    margin:0 auto;
-    display:none;
-  }
 </style>
 </head>
 <body>
@@ -306,9 +281,7 @@
     </div>
   </header>
 
-  <main id="main">
-    <!-- filled by JS -->
-  </main>
+  <main id="main"></main>
 
   <footer id="footerArea" style="display:none;">
     <button id="editListBtn">Edit daftar nama</button>
@@ -323,8 +296,8 @@
 
 <script>
 (function(){
-  const STORAGE_KEY = 'roster_v1';
-  let roster = null; // array of {id, name, status}
+  const STORAGE_KEY = 'roster_foto_angkatan_v1';
+  let roster = null;
   let selectedId = null;
 
   const mainEl = document.getElementById('main');
@@ -346,25 +319,31 @@
     return 'jpg';
   }
 
-  async function loadRoster(){
+  function loadRoster(){
     try{
-      const res = await window.storage.get(STORAGE_KEY, false);
-      roster = res ? JSON.parse(res.value) : null;
+      const raw = localStorage.getItem(STORAGE_KEY);
+      roster = raw ? JSON.parse(raw) : null;
     }catch(e){
+      console.error('Gagal membaca progress tersimpan', e);
       roster = null;
     }
   }
 
-  async function saveRoster(){
+  function saveRoster(){
     try{
-      await window.storage.set(STORAGE_KEY, JSON.stringify(roster), false);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(roster));
     }catch(e){
-      console.error('Gagal menyimpan roster', e);
+      console.error('Gagal menyimpan progress', e);
+      alert('Penyimpanan progress gagal — pastikan browser tidak dalam mode "Incognito/Penyamaran" dan izin penyimpanan situs tidak diblokir.');
     }
   }
 
   function parseNamesInput(text){
     return text.split('\n').map(s=>s.trim()).filter(Boolean);
+  }
+
+  function escapeHtml(str){
+    return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
   function renderSetup(existingNames){
@@ -379,7 +358,7 @@
         <button class="btn-primary" id="buildListBtn">Buat / Perbarui Daftar</button>
       </div>
     `;
-    document.getElementById('buildListBtn').addEventListener('click', async ()=>{
+    document.getElementById('buildListBtn').addEventListener('click', ()=>{
       const names = parseNamesInput(document.getElementById('namesInput').value);
       if(names.length === 0) return;
       const prev = roster || [];
@@ -389,7 +368,7 @@
         const old = prevMap[n];
         return old ? old : { id: 'm'+i+'_'+Date.now()+Math.random().toString(36).slice(2,6), name: n, status: 'pending' };
       });
-      await saveRoster();
+      saveRoster();
       selectedId = roster.find(r=>r.status==='pending')?.id || null;
       renderMain();
     });
@@ -406,7 +385,7 @@
       renderSetup('');
       return;
     }
-    subText.textContent = 'Pilih nama, ambil atau unggah foto — foto langsung tersimpan dengan nama itu.';
+    subText.textContent = 'Pilih nama, lalu ambil atau unggah foto — foto langsung terdownload dengan nama itu.';
     footerArea.style.display = 'block';
     progressRow.style.display = 'flex';
 
@@ -432,7 +411,7 @@
           <button class="cap-btn alt" id="pickPhotoBtn"><span class="cap-icon">🖼️</span>Pilih dari Galeri</button>
         </div>
         <div class="saved-flash" id="savedFlash"></div>
-        <p class="hint">Setelah foto dipilih, akan muncul menu <b>Bagikan</b> Android — pilih "Simpan ke..." lewat aplikasi Files, lalu pilih folder mana pun yang kamu mau. Nama filenya sudah otomatis sesuai nama di atas. (Kalau menu Bagikan tidak muncul di HP-mu, foto akan otomatis terunduh ke folder Downloads sebagai cadangan.)</p>
+        <p class="hint">Foto akan otomatis terdownload dengan nama file sesuai nama mahasiswa yang dipilih di atas.</p>
       </div>
 
       <div class="search-wrap">
@@ -457,12 +436,6 @@
     });
 
     renderRosterList('');
-
-    document.getElementById('editListBtn')?.remove?.(); // no-op guard
-  }
-
-  function escapeHtml(str){
-    return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
   function renderRosterList(filter){
@@ -496,83 +469,26 @@
       });
     });
     listEl.querySelectorAll('[data-action="undo"]').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
+      btn.addEventListener('click', ()=>{
         const id = btn.getAttribute('data-id');
         const item = roster.find(r=>r.id===id);
         if(item){
           item.status = 'pending';
-          await saveRoster();
+          saveRoster();
           renderMain();
         }
       });
     });
   }
 
-  let pendingFile = null;
-  let pendingStudentId = null;
-
-  function onFileChosen(file){
+  function handleFile(file){
     if(!file || !selectedId) return;
-    pendingFile = file;
-    pendingStudentId = selectedId;
-    renderPendingPreview();
-  }
+    const student = roster.find(r=>r.id===selectedId);
+    if(!student) return;
 
-  function renderPendingPreview(){
-    const student = roster.find(r=>r.id===pendingStudentId);
-    if(!student || !pendingFile) return;
-    const ext = extFromType(pendingFile.type);
+    const ext = extFromType(file.type);
     const filename = sanitize(student.name) + '.' + ext;
-    const flash = document.getElementById('savedFlash');
-    if(!flash) return;
-    const previewUrl = URL.createObjectURL(pendingFile);
-    flash.innerHTML = `
-      <div style="display:flex; gap:10px; align-items:center;">
-        <img src="${previewUrl}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0;">
-        <div style="flex:1; min-width:0;">
-          <div style="font-size:13px;">Foto untuk <b>${escapeHtml(student.name)}</b></div>
-          <div style="font-size:11.5px; color:var(--ink-soft);">akan disimpan sebagai ${filename}</div>
-        </div>
-      </div>
-      <div style="display:flex; gap:8px; margin-top:10px;">
-        <button class="cap-btn" id="confirmShareBtn" style="flex:1; padding:10px;">📤 Bagikan / Pilih Folder</button>
-        <button class="cap-btn alt" id="confirmDownloadBtn" style="flex:1; padding:10px;">⬇️ Download Langsung</button>
-      </div>
-      <button id="cancelPendingBtn" style="margin-top:8px; background:none; color:var(--ink-soft); font-size:12px; text-decoration:underline; width:100%;">Batal, ganti foto</button>
-    `;
-    flash.classList.add('show');
 
-    document.getElementById('confirmShareBtn').addEventListener('click', async ()=>{
-      const renamedFile = new File([pendingFile], filename, { type: pendingFile.type });
-      let shared = false;
-      if(navigator.canShare && navigator.canShare({ files: [renamedFile] })){
-        try{
-          await navigator.share({ files: [renamedFile], title: filename });
-          shared = true;
-        }catch(err){
-          shared = false;
-        }
-      }
-      if(!shared){
-        alert('Menu Bagikan tidak didukung di HP ini. Foto akan didownload langsung sebagai gantinya.');
-        triggerDownload(renamedFile, filename);
-      }
-      finishSave(student, filename, shared);
-    });
-    document.getElementById('confirmDownloadBtn').addEventListener('click', ()=>{
-      const renamedFile = new File([pendingFile], filename, { type: pendingFile.type });
-      triggerDownload(renamedFile, filename);
-      finishSave(student, filename, false);
-    });
-    document.getElementById('cancelPendingBtn').addEventListener('click', ()=>{
-      pendingFile = null;
-      pendingStudentId = null;
-      flash.classList.remove('show');
-      flash.innerHTML = '';
-    });
-  }
-
-  function triggerDownload(file, filename){
     const url = URL.createObjectURL(file);
     const a = document.createElement('a');
     a.href = url;
@@ -581,13 +497,15 @@
     a.click();
     document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
-  }
 
-  async function finishSave(student, filename, shared){
     student.status = 'done';
-    await saveRoster();
-    pendingFile = null;
-    pendingStudentId = null;
+    saveRoster();
+
+    const flash = document.getElementById('savedFlash');
+    if(flash){
+      flash.textContent = `Tersimpan sebagai "${filename}" — ${student.name} ditandai selesai.`;
+      flash.classList.add('show');
+    }
     const nextPending = roster.find(r=>r.status==='pending');
     selectedId = nextPending ? nextPending.id : null;
     renderMain();
@@ -595,19 +513,19 @@
 
   cameraInput.addEventListener('change', (e)=>{
     const file = e.target.files[0];
-    onFileChosen(file);
+    handleFile(file);
     e.target.value = '';
   });
   galleryInput.addEventListener('change', (e)=>{
     const file = e.target.files[0];
-    onFileChosen(file);
+    handleFile(file);
     e.target.value = '';
   });
 
-  document.getElementById('resetBtn').addEventListener('click', async ()=>{
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
     if(!confirm('Reset status semua mahasiswa jadi "belum difoto"? Daftar nama tidak akan hilang.')) return;
     roster.forEach(r => r.status = 'pending');
-    await saveRoster();
+    saveRoster();
     selectedId = roster[0]?.id || null;
     renderMain();
   });
@@ -616,8 +534,8 @@
     renderSetup(roster.map(r=>r.name).join('\n'));
   });
 
-  (async function init(){
-    await loadRoster();
+  (function init(){
+    loadRoster();
     if(roster && roster.length > 0){
       renderMain();
     }else{
