@@ -508,51 +508,86 @@
     });
   }
 
-  async function handleFile(file){
+  let pendingFile = null;
+  let pendingStudentId = null;
+
+  function onFileChosen(file){
     if(!file || !selectedId) return;
-    const student = roster.find(r=>r.id===selectedId);
-    if(!student) return;
+    pendingFile = file;
+    pendingStudentId = selectedId;
+    renderPendingPreview();
+  }
 
-    const ext = extFromType(file.type);
+  function renderPendingPreview(){
+    const student = roster.find(r=>r.id===pendingStudentId);
+    if(!student || !pendingFile) return;
+    const ext = extFromType(pendingFile.type);
     const filename = sanitize(student.name) + '.' + ext;
-    const renamedFile = new File([file], filename, { type: file.type });
+    const flash = document.getElementById('savedFlash');
+    if(!flash) return;
+    const previewUrl = URL.createObjectURL(pendingFile);
+    flash.innerHTML = `
+      <div style="display:flex; gap:10px; align-items:center;">
+        <img src="${previewUrl}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px;">Foto untuk <b>${escapeHtml(student.name)}</b></div>
+          <div style="font-size:11.5px; color:var(--ink-soft);">akan disimpan sebagai ${filename}</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="cap-btn" id="confirmShareBtn" style="flex:1; padding:10px;">📤 Bagikan / Pilih Folder</button>
+        <button class="cap-btn alt" id="confirmDownloadBtn" style="flex:1; padding:10px;">⬇️ Download Langsung</button>
+      </div>
+      <button id="cancelPendingBtn" style="margin-top:8px; background:none; color:var(--ink-soft); font-size:12px; text-decoration:underline; width:100%;">Batal, ganti foto</button>
+    `;
+    flash.classList.add('show');
 
-    let method = 'unduh'; // fallback label
-    let shared = false;
-
-    // Prefer native share sheet: lets the user pick ANY folder/app to save into
-    if(navigator.canShare && navigator.canShare({ files: [renamedFile] })){
-      try{
-        await navigator.share({ files: [renamedFile], title: filename });
-        shared = true;
-        method = 'dibagikan';
-      }catch(err){
-        // user cancelled the share sheet, or it failed — fall back to download
-        shared = false;
+    document.getElementById('confirmShareBtn').addEventListener('click', async ()=>{
+      const renamedFile = new File([pendingFile], filename, { type: pendingFile.type });
+      let shared = false;
+      if(navigator.canShare && navigator.canShare({ files: [renamedFile] })){
+        try{
+          await navigator.share({ files: [renamedFile], title: filename });
+          shared = true;
+        }catch(err){
+          shared = false;
+        }
       }
-    }
+      if(!shared){
+        alert('Menu Bagikan tidak didukung di HP ini. Foto akan didownload langsung sebagai gantinya.');
+        triggerDownload(renamedFile, filename);
+      }
+      finishSave(student, filename, shared);
+    });
+    document.getElementById('confirmDownloadBtn').addEventListener('click', ()=>{
+      const renamedFile = new File([pendingFile], filename, { type: pendingFile.type });
+      triggerDownload(renamedFile, filename);
+      finishSave(student, filename, false);
+    });
+    document.getElementById('cancelPendingBtn').addEventListener('click', ()=>{
+      pendingFile = null;
+      pendingStudentId = null;
+      flash.classList.remove('show');
+      flash.innerHTML = '';
+    });
+  }
 
-    if(!shared){
-      const url = URL.createObjectURL(renamedFile);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url), 4000);
-      method = 'diunduh';
-    }
+  function triggerDownload(file, filename){
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  }
 
+  async function finishSave(student, filename, shared){
     student.status = 'done';
     await saveRoster();
-    const flash = document.getElementById('savedFlash');
-    if(flash){
-      flash.textContent = shared
-        ? `"${filename}" dikirim ke share sheet — pilih "Simpan ke..." lalu folder tujuanmu. ${student.name} ditandai selesai.`
-        : `Tersimpan sebagai "${filename}" — ${student.name} ditandai selesai.`;
-      flash.classList.add('show');
-    }
+    pendingFile = null;
+    pendingStudentId = null;
     const nextPending = roster.find(r=>r.status==='pending');
     selectedId = nextPending ? nextPending.id : null;
     renderMain();
@@ -560,12 +595,12 @@
 
   cameraInput.addEventListener('change', (e)=>{
     const file = e.target.files[0];
-    handleFile(file);
+    onFileChosen(file);
     e.target.value = '';
   });
   galleryInput.addEventListener('change', (e)=>{
     const file = e.target.files[0];
-    handleFile(file);
+    onFileChosen(file);
     e.target.value = '';
   });
 
