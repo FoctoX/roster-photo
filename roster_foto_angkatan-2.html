@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Roster Foto Angkatan</title>
+<style>
+  :root{
+    --paper:#EEF0E6;
+    --paper-2:#E4E7D9;
+    --ink:#232B3B;
+    --ink-soft:#5B6270;
+    --gold:#C99A3B;
+    --gold-deep:#A87E2A;
+    --done:#AEA695;
+    --done-bg:#E2DED2;
+    --danger:#B4544A;
+    --white:#FCFBF7;
+    --radius:14px;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    background:var(--paper);
+  }
+  header{
+    padding:22px 20px 16px;
+    border-bottom:1px solid var(--paper-2);
+    background:var(--white);
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:400;
+    font-size:22px;
+    margin:0 0 4px;
+    letter-spacing:0.2px;
+  }
+  .sub{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin:0;
+  }
+  .progress-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:14px;
+  }
+  .progress-track{
+    flex:1;
+    height:8px;
+    border-radius:99px;
+    background:var(--paper-2);
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--gold);
+    border-radius:99px;
+    transition:width .35s ease;
+  }
+  .progress-num{
+    font-size:13px;
+    font-variant-numeric:tabular-nums;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+
+  main{flex:1; padding:16px 20px 100px;}
+
+  /* Setup screen */
+  .setup{
+    background:var(--white);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-top:16px;
+  }
+  .setup p{font-size:14px; color:var(--ink-soft); line-height:1.5;}
+  textarea{
+    width:100%;
+    min-height:180px;
+    border:1px solid var(--paper-2);
+    border-radius:10px;
+    padding:12px;
+    font-family:var(--sans);
+    font-size:14px;
+    resize:vertical;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  label.field-label{
+    display:block;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:14px 0 6px;
+  }
+
+  button{
+    font-family:var(--sans);
+    cursor:pointer;
+    border:none;
+  }
+  .btn-primary{
+    width:100%;
+    padding:13px;
+    border-radius:10px;
+    background:var(--ink);
+    color:var(--white);
+    font-size:15px;
+    margin-top:16px;
+  }
+  .btn-primary:disabled{opacity:.4;}
+  .btn-secondary{
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    background:transparent;
+    color:var(--ink);
+    font-size:14px;
+    border:1px solid var(--paper-2);
+  }
+
+  /* Action card */
+  .action-card{
+    background:var(--white);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-top:16px;
+    border:1px solid var(--paper-2);
+  }
+  .action-card h2{
+    font-family:var(--serif);
+    font-weight:400;
+    font-size:16px;
+    margin:0 0 12px;
+  }
+  select{
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid var(--paper-2);
+    background:var(--paper);
+    color:var(--ink);
+    font-size:15px;
+    font-family:var(--sans);
+    appearance:none;
+    -webkit-appearance:none;
+  }
+  .capture-row{
+    display:flex;
+    gap:10px;
+    margin-top:12px;
+  }
+  .cap-btn{
+    flex:1;
+    padding:14px 8px;
+    border-radius:10px;
+    background:var(--gold);
+    color:var(--white);
+    font-size:14px;
+    font-weight:600;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+  }
+  .cap-btn.alt{
+    background:var(--paper);
+    color:var(--ink);
+    border:1px solid var(--paper-2);
+    font-weight:500;
+  }
+  .cap-icon{font-size:20px;}
+  .hint{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    line-height:1.5;
+  }
+
+  /* Preview toast */
+  .saved-flash{
+    background:#EFE9D8;
+    border:1px solid var(--gold);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:13px;
+    margin-top:12px;
+    display:none;
+  }
+  .saved-flash.show{display:block;}
+
+  /* Search */
+  .search-wrap{margin-top:20px;}
+  .search-wrap input{
+    width:100%;
+    padding:11px 14px;
+    border-radius:10px;
+    border:1px solid var(--paper-2);
+    font-size:14px;
+    background:var(--white);
+    color:var(--ink);
+  }
+
+  /* Roster list */
+  .roster-title{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:18px 2px 8px;
+    text-transform:none;
+  }
+  .roster{
+    background:var(--white);
+    border-radius:var(--radius);
+    overflow:hidden;
+    border:1px solid var(--paper-2);
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:13px 16px;
+    border-bottom:1px solid var(--paper-2);
+  }
+  .row:last-child{border-bottom:none;}
+  .row.done{background:var(--done-bg);}
+  .row-main{display:flex; align-items:center; gap:10px; flex:1; min-width:0;}
+  .row-main .name{
+    font-size:14.5px;
+    color:var(--ink);
+  }
+  .row.done .name{
+    color:var(--done);
+    text-decoration:line-through;
+    text-decoration-color:var(--done);
+  }
+  .check{
+    width:20px; height:20px;
+    border-radius:50%;
+    border:1.5px solid var(--paper-2);
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px;
+    color:var(--white);
+  }
+  .row.done .check{
+    background:var(--gold-deep);
+    border-color:var(--gold-deep);
+  }
+  .row-actions{display:flex; gap:8px; flex-shrink:0;}
+  .icon-btn{
+    background:none;
+    color:var(--ink-soft);
+    font-size:13px;
+    padding:4px 6px;
+  }
+  .empty-state{
+    text-align:center;
+    padding:30px 16px;
+    color:var(--ink-soft);
+    font-size:13px;
+  }
+
+  footer{
+    padding:14px 20px 24px;
+    text-align:center;
+  }
+  footer button{
+    background:none;
+    color:var(--ink-soft);
+    font-size:12.5px;
+    text-decoration:underline;
+  }
+
+  .fab-edit{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    max-width:480px;
+    margin:0 auto;
+    display:none;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <header>
+    <h1>Roster Foto Angkatan</h1>
+    <p class="sub" id="subText">Satu per satu, sampai semua kebagian foto.</p>
+    <div class="progress-row" id="progressRow" style="display:none;">
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+      <div class="progress-num" id="progressNum">0/0</div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- filled by JS -->
+  </main>
+
+  <footer id="footerArea" style="display:none;">
+    <button id="editListBtn">Edit daftar nama</button>
+    &nbsp;·&nbsp;
+    <button id="resetBtn">Reset semua status</button>
+  </footer>
+
+</div>
+
+<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="galleryInput" accept="image/*" style="display:none;">
+
+<script>
+(function(){
+  const STORAGE_KEY = 'roster_v1';
+  let roster = null; // array of {id, name, status}
+  let selectedId = null;
+
+  const mainEl = document.getElementById('main');
+  const subText = document.getElementById('subText');
+  const progressRow = document.getElementById('progressRow');
+  const progressFill = document.getElementById('progressFill');
+  const progressNum = document.getElementById('progressNum');
+  const footerArea = document.getElementById('footerArea');
+  const cameraInput = document.getElementById('cameraInput');
+  const galleryInput = document.getElementById('galleryInput');
+
+  function sanitize(name){
+    return name.trim().replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'_');
+  }
+
+  function extFromType(type){
+    if(type === 'image/png') return 'png';
+    if(type === 'image/webp') return 'webp';
+    return 'jpg';
+  }
+
+  async function loadRoster(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      roster = res ? JSON.parse(res.value) : null;
+    }catch(e){
+      roster = null;
+    }
+  }
+
+  async function saveRoster(){
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify(roster), false);
+    }catch(e){
+      console.error('Gagal menyimpan roster', e);
+    }
+  }
+
+  function parseNamesInput(text){
+    return text.split('\n').map(s=>s.trim()).filter(Boolean);
+  }
+
+  function renderSetup(existingNames){
+    footerArea.style.display = 'none';
+    progressRow.style.display = 'none';
+    subText.textContent = 'Tempel daftar nama satu angkatanmu, satu nama per baris.';
+    mainEl.innerHTML = `
+      <div class="setup">
+        <p>Belum ada daftar nama. Tempel semua nama mahasiswa di angkatanmu di bawah ini — satu nama per baris.</p>
+        <label class="field-label">Daftar nama</label>
+        <textarea id="namesInput" placeholder="Contoh:\nAndi Saputra\nBella Kusuma\nCahyo Nugroho\n...">${existingNames || ''}</textarea>
+        <button class="btn-primary" id="buildListBtn">Buat / Perbarui Daftar</button>
+      </div>
+    `;
+    document.getElementById('buildListBtn').addEventListener('click', async ()=>{
+      const names = parseNamesInput(document.getElementById('namesInput').value);
+      if(names.length === 0) return;
+      const prev = roster || [];
+      const prevMap = {};
+      prev.forEach(p => prevMap[p.name] = p);
+      roster = names.map((n, i) => {
+        const old = prevMap[n];
+        return old ? old : { id: 'm'+i+'_'+Date.now()+Math.random().toString(36).slice(2,6), name: n, status: 'pending' };
+      });
+      await saveRoster();
+      selectedId = roster.find(r=>r.status==='pending')?.id || null;
+      renderMain();
+    });
+  }
+
+  function computeProgress(){
+    const total = roster.length;
+    const done = roster.filter(r=>r.status==='done').length;
+    return {total, done};
+  }
+
+  function renderMain(){
+    if(!roster || roster.length === 0){
+      renderSetup('');
+      return;
+    }
+    subText.textContent = 'Pilih nama, ambil atau unggah foto — foto langsung tersimpan dengan nama itu.';
+    footerArea.style.display = 'block';
+    progressRow.style.display = 'flex';
+
+    const {total, done} = computeProgress();
+    progressFill.style.width = total ? Math.round((done/total)*100)+'%' : '0%';
+    progressNum.textContent = `${done}/${total}`;
+
+    if(!selectedId || !roster.find(r=>r.id===selectedId)){
+      const firstPending = roster.find(r=>r.status==='pending');
+      selectedId = firstPending ? firstPending.id : roster[0].id;
+    }
+
+    const optionsHtml = roster.map(r =>
+      `<option value="${r.id}" ${r.id===selectedId?'selected':''}>${r.status==='done' ? '✓ ' : ''}${escapeHtml(r.name)}</option>`
+    ).join('');
+
+    mainEl.innerHTML = `
+      <div class="action-card">
+        <h2>Foto bareng siapa sekarang?</h2>
+        <select id="nameSelect">${optionsHtml}</select>
+        <div class="capture-row">
+          <button class="cap-btn" id="takePhotoBtn"><span class="cap-icon">📷</span>Ambil Foto Baru</button>
+          <button class="cap-btn alt" id="pickPhotoBtn"><span class="cap-icon">🖼️</span>Pilih dari Galeri</button>
+        </div>
+        <div class="saved-flash" id="savedFlash"></div>
+        <p class="hint">Setelah foto dipilih, akan muncul menu <b>Bagikan</b> Android — pilih "Simpan ke..." lewat aplikasi Files, lalu pilih folder mana pun yang kamu mau. Nama filenya sudah otomatis sesuai nama di atas. (Kalau menu Bagikan tidak muncul di HP-mu, foto akan otomatis terunduh ke folder Downloads sebagai cadangan.)</p>
+      </div>
+
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Cari nama…">
+      </div>
+
+      <div class="roster-title">Daftar mahasiswa (${total})</div>
+      <div class="roster" id="rosterList"></div>
+    `;
+
+    document.getElementById('nameSelect').addEventListener('change', (e)=>{
+      selectedId = e.target.value;
+    });
+    document.getElementById('takePhotoBtn').addEventListener('click', ()=>{
+      cameraInput.click();
+    });
+    document.getElementById('pickPhotoBtn').addEventListener('click', ()=>{
+      galleryInput.click();
+    });
+    document.getElementById('searchInput').addEventListener('input', (e)=>{
+      renderRosterList(e.target.value);
+    });
+
+    renderRosterList('');
+
+    document.getElementById('editListBtn')?.remove?.(); // no-op guard
+  }
+
+  function escapeHtml(str){
+    return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function renderRosterList(filter){
+    const listEl = document.getElementById('rosterList');
+    if(!listEl) return;
+    const f = filter.trim().toLowerCase();
+    const items = roster.filter(r => r.name.toLowerCase().includes(f));
+    if(items.length === 0){
+      listEl.innerHTML = `<div class="empty-state">Tidak ada nama yang cocok.</div>`;
+      return;
+    }
+    listEl.innerHTML = items.map(r => `
+      <div class="row ${r.status==='done'?'done':''}" data-id="${r.id}">
+        <div class="row-main">
+          <div class="check">${r.status==='done'?'✓':''}</div>
+          <div class="name">${escapeHtml(r.name)}</div>
+        </div>
+        <div class="row-actions">
+          <button class="icon-btn" data-action="select" data-id="${r.id}">Pilih</button>
+          ${r.status==='done' ? `<button class="icon-btn" data-action="undo" data-id="${r.id}">Batalkan</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    listEl.querySelectorAll('[data-action="select"]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        selectedId = btn.getAttribute('data-id');
+        const sel = document.getElementById('nameSelect');
+        if(sel) sel.value = selectedId;
+        window.scrollTo({top:0, behavior:'smooth'});
+      });
+    });
+    listEl.querySelectorAll('[data-action="undo"]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.getAttribute('data-id');
+        const item = roster.find(r=>r.id===id);
+        if(item){
+          item.status = 'pending';
+          await saveRoster();
+          renderMain();
+        }
+      });
+    });
+  }
+
+  async function handleFile(file){
+    if(!file || !selectedId) return;
+    const student = roster.find(r=>r.id===selectedId);
+    if(!student) return;
+
+    const ext = extFromType(file.type);
+    const filename = sanitize(student.name) + '.' + ext;
+    const renamedFile = new File([file], filename, { type: file.type });
+
+    let method = 'unduh'; // fallback label
+    let shared = false;
+
+    // Prefer native share sheet: lets the user pick ANY folder/app to save into
+    if(navigator.canShare && navigator.canShare({ files: [renamedFile] })){
+      try{
+        await navigator.share({ files: [renamedFile], title: filename });
+        shared = true;
+        method = 'dibagikan';
+      }catch(err){
+        // user cancelled the share sheet, or it failed — fall back to download
+        shared = false;
+      }
+    }
+
+    if(!shared){
+      const url = URL.createObjectURL(renamedFile);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      method = 'diunduh';
+    }
+
+    student.status = 'done';
+    await saveRoster();
+    const flash = document.getElementById('savedFlash');
+    if(flash){
+      flash.textContent = shared
+        ? `"${filename}" dikirim ke share sheet — pilih "Simpan ke..." lalu folder tujuanmu. ${student.name} ditandai selesai.`
+        : `Tersimpan sebagai "${filename}" — ${student.name} ditandai selesai.`;
+      flash.classList.add('show');
+    }
+    const nextPending = roster.find(r=>r.status==='pending');
+    selectedId = nextPending ? nextPending.id : null;
+    renderMain();
+  }
+
+  cameraInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    handleFile(file);
+    e.target.value = '';
+  });
+  galleryInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    handleFile(file);
+    e.target.value = '';
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', async ()=>{
+    if(!confirm('Reset status semua mahasiswa jadi "belum difoto"? Daftar nama tidak akan hilang.')) return;
+    roster.forEach(r => r.status = 'pending');
+    await saveRoster();
+    selectedId = roster[0]?.id || null;
+    renderMain();
+  });
+
+  document.getElementById('editListBtn').addEventListener('click', ()=>{
+    renderSetup(roster.map(r=>r.name).join('\n'));
+  });
+
+  (async function init(){
+    await loadRoster();
+    if(roster && roster.length > 0){
+      renderMain();
+    }else{
+      renderSetup('');
+    }
+  })();
+})();
+</script>
+</body>
+</html>
