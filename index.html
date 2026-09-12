@@ -310,7 +310,7 @@
   const galleryInput = document.getElementById('galleryInput');
 
   function sanitize(name){
-    return name.trim().replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'_');
+    return name.trim().replace(/[\\/:*?"<>|]/g,'');
   }
 
   function extFromType(type){
